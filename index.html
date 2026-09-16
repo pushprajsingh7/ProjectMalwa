@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Malwa - Feedback System</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 30px 15px; background: #f4f6f8; margin: 0; }
+        .card { background: #ffffff; padding: 25px; border-radius: 16px; max-width: 380px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        h2 { color: #1a1a1a; margin-bottom: 8px; font-size: 22px; }
+        p { color: #666; font-size: 14px; margin-bottom: 20px; }
+        .stars { display: flex; justify-content: center; gap: 8px; margin: 20px 0; }
+        .star { font-size: 40px; cursor: pointer; color: #e0e0e0; transition: transform 0.1s, color 0.2s; }
+        .star:active { transform: scale(1.2); }
+        .star.active { color: #ffb400; }
+        button { background: #007bff; color: #fff; border: none; padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; }
+        button:disabled { background: #cccccc; cursor: not-allowed; }
+        .captcha-box { display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #ddd; }
+        input[type="number"] { width: 60px; padding: 8px; font-size: 16px; text-align: center; margin-left: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="card" id="app">
+        <h2 id="clientTitle">Loading...</h2>
+        <p>How was your experience today?</p>
+        
+        <div class="stars">
+            <span class="star" onclick="rate(1)">★</span>
+            <span class="star" onclick="rate(2)">★</span>
+            <span class="star" onclick="rate(3)">★</span>
+            <span class="star" onclick="rate(4)">★</span>
+            <span class="star" onclick="rate(5)">★</span>
+        </div>
+
+        <div id="captchaBox" class="captcha-box">
+            <span id="captchaText"></span>
+            <input type="number" id="captchaAnswer" placeholder="?">
+        </div>
+
+        <button id="submitBtn" onclick="handleSubmit()" disabled>Submit Feedback</button>
+    </div>
+
+    <script>
+        // CLIENT CONFIGURATION DATABASE
+        const CLIENTS = {
+            "heaven": {
+                name: "Hotel Heaven Inn",
+                googleUrl: "https://g.page/r/YOUR_GOOGLE_LINK/review",
+                whatsapp: "919876543210"
+            },
+            "chappan": {
+                name: "Chappan Cafe",
+                googleUrl: "https://maps.google.com",
+                whatsapp: "919999988888"
+            },
+            "demo": {
+                name: "Demo Store Indore",
+                googleUrl: "https://maps.google.com",
+                whatsapp: "919876543210"
+            }
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const clientId = urlParams.get('client') || 'demo';
+        const cardId = urlParams.get('card') || '000';
+        const client = CLIENTS[clientId] || CLIENTS['demo'];
+
+        document.getElementById('clientTitle').innerText = client.name;
+
+        let selectedRating = 0;
+        let num1 = Math.floor(Math.random() * 5) + 1;
+        let num2 = Math.floor(Math.random() * 5) + 1;
+
+        // Browser Local Lock
+        if (localStorage.getItem(`reviewed_${clientId}_${cardId}`)) {
+            document.getElementById('app').innerHTML = `
+                <h2>Feedback Recorded</h2>
+                <p>Thank you! Response for Card #${cardId} has been saved.</p>
+                <p>Show your review screen to the cashier for your discount.</p>
+            `;
+        }
+
+        function rate(val) {
+            selectedRating = val;
+            document.querySelectorAll('.star').forEach((s, idx) => {
+                s.classList.toggle('active', idx < val);
+            });
+            document.getElementById('submitBtn').disabled = false;
+
+            if (val <= 3) {
+                document.getElementById('captchaBox').style.display = 'block';
+                document.getElementById('captchaText').innerText = `Security Check: ${num1} + ${num2} = `;
+            } else {
+                document.getElementById('captchaBox').style.display = 'none';
+            }
+        }
+
+        function handleSubmit() {
+            const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+            if (selectedRating >= 4) {
+                localStorage.setItem(`reviewed_${clientId}_${cardId}`, 'true');
+                window.location.href = client.googleUrl;
+            } else {
+                const ans = parseInt(document.getElementById('captchaAnswer').value);
+                if (ans !== (num1 + num2)) {
+                    alert('Incorrect CAPTCHA answer.');
+                    return;
+                }
+                localStorage.setItem(`reviewed_${clientId}_${cardId}`, 'true');
+                const msg = encodeURIComponent(`Feedback for ${client.name} (Card #${cardId} | Time: ${now}): Rated ${selectedRating} stars.`);
+                window.location.href = `https://wa.me/${client.whatsapp}?text=${msg}`;
+            }
+        }
+    </script>
+</body>
+</html>
